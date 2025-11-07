@@ -1,73 +1,75 @@
 ; MBR.asm
-; x64 bootloader if looking for commented code look at the x86 version
-
-org 0x600
+; x64 bootloader (16-bit real mode)
+org 0x7c00
 bits 16
 
 start:
-    cli                 ; disable intr.
+
+    cli                 ; disable interrupts
     xor ax, ax
-    mov sp, 0x7c00      ; stack pointer to 0x7c00
-    mov ss, ax          ; stack seg. to 0 full stack addr 0:0x7c00
-.relocate:
-    mov si, 0x7c00      ; currentloc
-    mov cx, 0x100       ; ammount
-    mov di, 0x600       ; new location
-    rep movsw
-    jmp 0:loader
-
-; loads the second stage bootloader
-loader:
-    mov byte[DriveNum], dl
-.CheckPartitions:
-    mov bx, PT1         ; set the base to the beginning of the 1st parti.
-    mov cx, 4           ; ammount of partitions
-.CheckLoop:
-    mov al, byte[bx]    ; get the drive atr. bit 7 set Partition layout (https://wiki.osdev.org/MBR_(x86))
-    test al, 0x40       ; 0x40 = 01000000
-    jnz .ActivePart
-    add bx, 0x10        ; increment by 16 (Part. size)
-    dec cx              ; counter --
-    jnz .CheckLoop      ; dec doesn't set CF but ZF
-    jmp PartitionError
-.ActivePart:
-    xor ax, ax
-    mov word[actPartitionoffset], bx
-    add bx, 8           ; get to 4byte LBA addr (https://wiki.osdev.org/MBR_(x86))
-    mov EBX, dword[bx]   ; move the actual val into EBX 32bit
-    mov es, ax
-    mov cx, 0x1         ;
-    mov di, 0x7c00
-    call readSectors
-    jmp 0x00:0x7c00
-
-
-
-readSectors:
-; make a Disk address pack https://en.wikipedia.org/wiki/INT_13H#INT_13h_AH=42h:_Read_Sectors_From_Drive
-.initDap:
-    mov byte [DAP], 0x10
-    mov word [DAP + 2], cx
-    mov word [DAP + 4], di
-    mov word [DAP + 6], 0x0
-    ; start at the 0th lba block
-.setup:
-    xor ax, ax
-    mov ah, 0x42
-    mov dl, byte[DriveNum]
+    mov ss, ax          ; set stack segment
     mov ds, ax
-    mov si, DAP
-.exeuteRead:
-    int 0x13        ; read sectors extended(for LBA)
-    jc disk_error
-.JumpToLoaded:
-    cmp Word[0x7DFE], 0xAA55
-    jnz PartitionError
-    mov si, word[actPartitionoffset]
-    mov dl, byte[DriveNum]
-    jmp 0x7c00
+    mov es, ax
+    mov sp, 0x7c00      ; set stack pointer
+    jmp 0x00:loader     ; enforce cs:ip
+
+loader:
+.CheckPartitions:
+    mov bx, PT1 ; start at the first offset
+    mov cx, 4
+.CheckLoop:
+    mov al, byte [bx]
+    test al, 0x80       ; check active bit
+    jnz .ActivePart     ; load partition
+    add bx, 0x10
+    dec cx
+    jnz .CheckLoop
+    jmp PartitionError
+
+.ActivePart:
+    mov cx, 4               ; load 4 sectors
+
+.SetupRead:
+    ; dl already contains the drive index
+    xor ax, ax
+    mov ch, 0      ; ah high byte of
+    mov cl, 2
+    mov dh, 0
+    mov es, ax
+    mov ah, 0x2
+    mov al, 4
+    mov bx, 0x9000
+    int 0x13
+    jc PartitionError
+    jmp 0:0x9000
 
 
+; ---------------------------
+; Print string routine
+print:
+    push ds
+    mov ax, 0x0000
+    mov ds, ax
+
+.print_loop:
+    lodsb
+    cmp al, 0
+    jz .print_end
+    mov ah, 0x0E
+    int 0x10
+    jmp .print_loop
+
+.print_end:
+    pop ds
+    ret
+
+; ---------------------------
+
+no_edd:
+    mov si, error_partition
+    call print
+    cli
+    jmp hangInState
 
 PartitionError:
     mov si, error_partition
@@ -76,42 +78,30 @@ PartitionError:
     jmp hangInState
 
 disk_error:
-mov si, error_dsk
-call print
-cli
-jmp hangInState
-
-print:
-    lodsb               ; loads val from si to al
-    cmp al, 0           ; check for null terminator
-    jz .terminate
-    mov ah, 0x0E        ; teletype
-    int 0x10
-    jmp print
-
-.terminate:
-    ret
+    mov si, error_dsk
+    call print
+    cli
+    jmp hangInState
 
 hangInState:
-hlt
-jmp hangInState
+    hlt
+    jmp hangInState
 
+; ---------------------------
+error_dsk        db 'Disk read error', 0
+boot             db 'Booting into Minux...',0x0A,0x0D,0
+error_partition  db 'No active Partition found',0x0A,0x0D,0
+posRelocate      db 'successfully relocated',0x0A,0x0D,0
+bootGood         db 'Booting 2nd stage bootloader',0x0A,0x0D,0
+loadingDAP       db 'building the DAP',0x0A,0x0D,0
+executingDAP     db 'Read the next sectors to 0x7c00',0x0A,0x0D,0
 
-error_dsk db 'Disk read error', 0
-error_partition db 'No active Partition found', 0
+; ---------------------------
+times (0x1BE - ($-$$)) db 0
 
-DAP times 16 db 0
-DriveNum db 0
-actPartitionoffset dw 0         ; 16-bit offset
-
-times (0x1BE -  ($-$$)) db 0
-
-DriveID times 4 db 0
-
-; partition sectors nesecarry to boot from hdd
 PT1 times 16 db 0
 PT2 times 16 db 0
 PT3 times 16 db 0
 PT4 times 16 db 0
-; magic number
+
 dw 0xAA55

@@ -1,0 +1,27 @@
+###############################################################
+# bochsrc.txt file for DLX Linux disk image.
+###############################################################
+
+# how much memory the emulated machine will have
+megs: 32
+
+# filename of ROM images
+romimage: file="C:\Program Files\Bochs-3.0\BIOS-bochs-latest"
+vgaromimage: file="C:\Program Files\Bochs-3.0\VGABIOS-lgpl-latest.bin"
+
+ata0-master: type=disk, path="hdd.img", mode=flat, cylinders=40, heads=16, spt=32
+# choose the boot disk.
+boot: disk
+
+display_library: win32, options="gui_debug"
+
+# where do we send log messages?
+log: bochsout.txt
+
+# disable the mouse, since DLX is text only
+mouse: enabled=0
+
+# set up IPS value and clock sync
+cpu: ips=15000000
+clock: sync=both
+

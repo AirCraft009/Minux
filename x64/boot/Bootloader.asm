@@ -3,10 +3,13 @@
 ;
 
 bits 16
-org 0x08000
+org 0x9000
 
 start:
     cli
+    mov sp, 0x9000
+    mov bh, 0
+    mov bl, 0x7
 .initA20:
     mov ax, 0x2401
     int 0x15
@@ -18,11 +21,12 @@ start:
     mov eax, cr0
     or  eax, 1            ; set PE bit
     mov cr0, eax
-    jmp 0x8:protectedModeStart
+    jmp 0x0:protectedModeStart
 
 
 protectedModeStart:
-    jmp failedA20
+
+
 failedA20:
     mov si, a20Fail
 .print:

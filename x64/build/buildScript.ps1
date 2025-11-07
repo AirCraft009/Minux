@@ -4,6 +4,7 @@ $ErrorActionPreference = "Stop"
 $root = Resolve-Path ../
 
 nasm "$root/boot/MBR.asm" -o "MBR.bin"
+(Get-Item "MBR.bin").Length
 nasm "$root/boot/Bootloader.asm" -o "$root/build/Bootloader.bin"
 
 # read both binaries as byte arrays (no text conversion!)
@@ -24,5 +25,6 @@ $fs.Close()
 $hdd = [System.IO.File]::ReadAllBytes("x64/build/hdd.img")
 $hdd[0x1BE] = 0x80
 [System.IO.File]::WriteAllBytes("x64/build/hdd.img", $hdd)
+Copy-Item "$root/build/hdd.img" -Destination "$root/testing/hdd.img"
 
 Write-Host "Created 10MB hdd.img with bootloader + stage2"
