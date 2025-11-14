@@ -1,6 +1,5 @@
 ; Bootloader - second stage bootloader (NASM)
 ; setup env. mem map, filesystem, etc.
-;
 
 bits 16
 org 0x9000
@@ -19,13 +18,30 @@ start:
 .enableProtected:
     cli
     mov eax, cr0
-    or  eax, 1            ; set PE bit
-    mov cr0, eax
-    jmp 0x0:protectedModeStart
+    or  eax, 1                  ; set PE bit
+    mov cr0, eax                ; set cr0 to 1 (enable protected mode)
+    jmp 0x8:protectedModeStart  ; should clear the prefetchqueue (cpu loads multiple inst. into mem at a time. Jumping frees the queue)
 
+bits 32                         ; !!!important some instruction will still be treated as 16 bit if not used
 protectedModeStart:
-    jmp protectedModeStart
+    nop                         ; make sure the queue is empty
+    nop
+.setupSegments:
+    mov ax, 0x10                ; offset of segment 2 in GDT (=Data Segment)
+    mov ds, ax                  ; set all segments
+    mov es, ax
+    mov gs, ax
+    mov fs, ax
+    mov ss, ax
+    mov esp, 0x0030000           ; esp( extended stack pointer) grows downwards from 0x30000
+.TestFunctionality:
+    mov ax, 0x0741
+    mov edi, 0x000B8000
+    mov [edi], ax
+.loopPoint:
+    jmp .loopPoint
 
+bits 16
 activateA20:
     ; to be implemented
     ; bochs's BIOS automatically enables A20 so I'll worry about this later
@@ -48,10 +64,14 @@ pusha
 xor ax, ax
 mov es, ax      ; set the segment to 0
 mov di, 0x800   ; location of the gdt is 0x800
+
+;; SEGMENT 0 ;;
 .NullDescriptor:
     ; offset 0
     mov cx, 0x4
     rep stosw  ; takes from ax saves to es:di
+
+;; SEGMENT 1;;
 .CodeSegment:
     ; offset 8
     ;limit
@@ -66,6 +86,8 @@ mov di, 0x800   ; location of the gdt is 0x800
     ;base
     mov es:[di+7], 0x00
     add di, 8
+
+;; SEGMENT 2 ;;
 .DataSegment:
     ; offset 16
     ;limit
@@ -119,8 +141,6 @@ CheckA20:
     pop es
     popa
     ret
-
-
 
 
 
