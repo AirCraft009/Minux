@@ -27,12 +27,10 @@ loader:
     jmp PartitionError
 
 .ActivePart:
-    mov cx, 4               ; load 4 sectors
-
 .SetupRead:
     ; dl already contains the drive index
     xor ax, ax
-    mov ch, 0      ; ah high byte of
+    mov ch, 0
     mov cl, 2
     mov dh, 0
     mov es, ax

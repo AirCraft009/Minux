@@ -10,6 +10,8 @@ start:
 .initA20:
     call CheckA20
     jz activateA20
+.loadKernel:
+    call Load
 .initGDT:
     call SetupGDT
     lgdt [gdtDescriptor]
@@ -35,13 +37,31 @@ protectedModeStart:
     mov ss, ax
     mov esp, 0x0030000           ; esp( extended stack pointer) grows downwards from 0x30000
 .TestFunctionality:
-    mov ax, 0x0741
-    mov edi, 0x000B8000
+    mov ax, 0x0741              ; load char for A
+    mov edi, 0x000B8000         ; write a to the top of the screen
     mov [edi], ax
-.loopPoint:
-    jmp .loopPoint
+.Kernel:
+    jmp 0x8:0x00100000
 
 bits 16
+
+Load:
+    pusha
+.SetupRead:
+    mov ax, 0xF800
+    mov es, ax
+    mov bx, 0x8000
+    mov ch, 0
+    mov cl, 3           ; start at sector 3
+    mov dh, 0
+    mov ah, 0x2
+    mov al, 4           ; load 1 sector 512 bytes
+    int 0x13
+    jc KernelLoaderror
+.exit:
+    popa
+    ret
+
 activateA20:
     ; to be implemented
     ; bochs's BIOS automatically enables A20 so I'll worry about this later
@@ -145,4 +165,7 @@ CheckA20:
 
 
 a20Fail db 'program failed while setting up a20',0x0D, 0x0A, 0
+KernelLoaderror db 'program failed while loading kernel',0x0D, 0x0A, 0
 gdt_desc times 0x10 db 0
+times  510 - ($ - $$) db 0
+dw 0xAA55
