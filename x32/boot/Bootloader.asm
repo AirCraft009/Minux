@@ -15,9 +15,14 @@ start:
     call CheckA20
     jc activateA20
 .loadKernel:
+    ; load the kernel to 0x600
+    ; because int 13h ah 2h can't handle boundary crossing
     mov si, loadingKern
     call print
-    call Load
+    call LoadKernel
+.RectifyKernel:
+    ; copy the kernel to 0x100000
+    call CopyKernel
 .initGDT:
     mov si, loadtable
     call print
@@ -53,22 +58,47 @@ protectedModeStart:
 
 bits 16
 
-Load:
-    pusha
-.SetupRead:
+CopyKernel:
+pusha
+push es
+push di
+; first loadedkernel to 0x0600 now copying it to 0x100000 = 1 MiB
+.Setup:
+    xor ax, ax
+    mov ds, ax
     mov ax, 0xF800
     mov es, ax
-    mov bx, 0x8000
+    mov si, 0x600
+    mov di, 0x8000
+    mov cx, 0x0800  ; 4 sectors (512 b) = 2048b = 2KB
+.Loop:
+    rep movsw       ; repeat cx ammount of times
+.exit:
+    pop di
+    pop es
+    popa
+    ret
+
+LoadKernel:
+    pusha
+    sti
+.SetupRead:
+; !!!es:bx may not be over or equal to 0x100000!!!
+; !!!bochs just allows it but other bios's might give back faulty data, or hang!!!
+    mov ax, 0x0
+    mov es, ax
+    mov bx, 0x0600
     mov ch, 0
     mov cl, 3           ; start at sector 3
     mov dh, 0
     mov ah, 0x2
     mov al, 4           ; load 4 sector 512 bytes
     int 0x13
-    jc KernelLoaderror
+    jc kernelLoadingError
     mov si, KernelLoad
     call print
 .exit:
+    cli
     popa
     ret
 
@@ -143,6 +173,12 @@ mov di, 0x800   ; location of the gdt is 0x800
 
 failedA20:
     mov si, a20Fail
+    call print
+    cli
+    jmp hangInState
+
+kernelLoadingError:
+    mov si, KernelLoaderror
     call print
     cli
     jmp hangInState

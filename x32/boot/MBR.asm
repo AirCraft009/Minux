@@ -29,6 +29,7 @@ loader:
     jmp PartitionError
 
 .ActivePart:
+    sti
 .SetupRead:
     ; dl already contains the drive index
     xor ax, ax
