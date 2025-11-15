@@ -14,6 +14,8 @@ start:
     jmp 0x00:loader     ; enforce cs:ip
 
 loader:
+    mov si, boot
+    call print
 .CheckPartitions:
     mov bx, PT1 ; start at the first offset
     mov cx, 4
@@ -39,6 +41,8 @@ loader:
     mov bx, 0x9000
     int 0x13
     jc PartitionError
+    mov si, bootGood
+    call print
     jmp 0:0x9000
 
 

@@ -7,12 +7,20 @@ org 0x9000
 start:
     cli
     mov sp, 0x9000
+    mov si, startup
+    call print
 .initA20:
+    mov si, checka20
+    call print
     call CheckA20
-    jz activateA20
+    jc activateA20
 .loadKernel:
+    mov si, loadingKern
+    call print
     call Load
 .initGDT:
+    mov si, loadtable
+    call print
     call SetupGDT
     lgdt [gdtDescriptor]
 .initIDT:
@@ -55,16 +63,23 @@ Load:
     mov cl, 3           ; start at sector 3
     mov dh, 0
     mov ah, 0x2
-    mov al, 4           ; load 1 sector 512 bytes
+    mov al, 4           ; load 4 sector 512 bytes
     int 0x13
     jc KernelLoaderror
+    mov si, KernelLoad
+    call print
 .exit:
     popa
     ret
 
 activateA20:
-    ; to be implemented
-    ; bochs's BIOS automatically enables A20 so I'll worry about this later
+  mov ax, 0x2401
+  int 0x15
+  call CheckA20
+  jnc .end
+  ;; rest is to be implemented
+.end:
+    ret
 
 idtDescriptor:
 .limit:
@@ -128,34 +143,66 @@ mov di, 0x800   ; location of the gdt is 0x800
 
 failedA20:
     mov si, a20Fail
-.print:
-    lodsb               ; loads val from si to al
-    cmp al, 0           ; check for null terminator
-    jz .hangInState
-    mov ah, 0x0E        ; teletype
-    int 0x10
-    jmp .print
+    call print
     cli
+    jmp hangInState
 
-.hangInState:
+print:
+    pusha
+    push ds
+    mov ax, 0x0000
+    mov ds, ax
+
+.print_loop:
+    lodsb
+    cmp al, 0
+    jz .print_end
+    mov ah, 0x0E
+    int 0x10
+    jmp .print_loop
+.print_end:
+    pop ds
+    popa
+    ret
+
+hangInState:
 hlt             ; low powermode
-jmp .hangInState
+jmp hangInState
 
 CheckA20:
-; this should adress 0x100001 and wrap that address arround to 0x0 if A20 isn't enabled
+; this should adress 0x100500 and wrap that address arround to 0x500 if A20 isn't enabled
     pusha
     push es
     push di
-    mov ax, 0xF800
-    mov es, ax
-    mov di, 0x8000
-.SetVal:
-    mov word es:[di], word 0xffff
-.readVal:
+.setRegsLow:
     xor ax, ax
     mov es, ax
-    mov di, 0x0
-    cmp es:[di], word 0xffff
+    mov di, 0x500
+.setValLow:
+    mov word es:[di], word 0x5555
+.setRegsHigh:
+    mov ax, 0xF800
+    mov es, ax
+    mov di, 0x8500
+.SetValHigh:
+    mov word es:[di], word 0xffff
+.setRegsLowRead:
+    xor ax, ax
+    mov es, ax
+    mov di, 0x500
+.readVal:
+    cmp es:[di], word 0x5555
+    jz .active
+.inactive:
+    mov si, a20Inactive
+    call print
+    stc
+    jmp .exit
+.active:
+    mov si, a20Active
+    call print
+    clc
+    jmp .exit
 .exit:
     pop di
     pop es
@@ -163,9 +210,15 @@ CheckA20:
     ret
 
 
-
+a20Inactive db 'a20 line is deactivated, trying to activate', 0x0d, 0x0A, 0
+a20Active db 'a20 line is activated, continiung', 0x0D, 0x0A,0
 a20Fail db 'program failed while setting up a20',0x0D, 0x0A, 0
+checka20 db 'checking a20 line',0x0D, 0x0A, 0
+startup db 'starting second-stage',0x0D, 0x0A, 0
 KernelLoaderror db 'program failed while loading kernel',0x0D, 0x0A, 0
+loadingKern db 'loading the kernel starting at sector 3',0x0D, 0x0A, 0
+loadtable db 'loading the LGDT and IDGT',0x0D, 0x0A, 0
+KernelLoad db 'kernel loaded without issues',0x0D, 0x0A, 0
 gdt_desc times 0x10 db 0
-times  510 - ($ - $$) db 0
+times  1022 - ($ - $$) db 0
 dw 0xAA55
