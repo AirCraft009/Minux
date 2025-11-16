@@ -23,7 +23,7 @@ loader:
     mov al, byte [bx]
     test al, 0x80       ; check active bit
     jnz .ActivePart     ; load partition
-    add bx, 0x10
+    add bx, 0x10        ; increase by 16 to next offset
     dec cx
     jnz .CheckLoop
     jmp PartitionError

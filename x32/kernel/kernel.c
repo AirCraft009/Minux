@@ -1,14 +1,10 @@
-//
-// Created by cocon on 15.11.2025.
-//
 
+#include "IO/Screen/SPut.c"
 #include "kernel.h"
-
-#include <stdint.h>
+// make sure that kmain() can be first
+void Kmain(void) __attribute__((section(".text.start")));
 
 void Kmain(void) {
-    volatile uint16_t* vga = (uint16_t*)0xB8000;
-    vga[0] = 0x0F00 | 'K';   // character 'K', color 0x0F (white on black)
-
+    putString(White, 75, 12, "h\nel \nlo        wo\nrld\n!!");
     for (;;) {}
 }

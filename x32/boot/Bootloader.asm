@@ -7,8 +7,15 @@ org 0x9000
 start:
     cli
     mov sp, 0x9000
+    mov [driveNum], dl
     mov si, startup
     call print
+.ClearScreen:
+; clear the screen and enforce text mode 80 x 25 (03)
+    mov al, 0x3
+    mov ah, 0x0
+    int 0x10
+    mov dl, [driveNum]
 .initA20:
     mov si, checka20
     call print
@@ -49,10 +56,6 @@ protectedModeStart:
     mov fs, ax
     mov ss, ax
     mov esp, 0x0030000           ; esp( extended stack pointer) grows downwards from 0x30000
-.TestFunctionality:
-    mov ax, 0x0741              ; load char for A
-    mov edi, 0x000B8000         ; write a to the top of the screen
-    mov [edi], ax
 .Kernel:
     jmp 0x8:0x00100000
 
@@ -89,7 +92,7 @@ LoadKernel:
     mov es, ax
     mov bx, 0x0600
     mov ch, 0
-    mov cl, 3           ; start at sector 3
+    mov cl, 4           ; start at sector 4
     mov dh, 0
     mov ah, 0x2
     mov al, 4           ; load 4 sector 512 bytes
@@ -244,7 +247,9 @@ CheckA20:
     pop es
     popa
     ret
-
+; clearing the screen will also clear dl
+; so it's saved here
+driveNum db 0
 
 a20Inactive db 'a20 line is deactivated, trying to activate', 0x0d, 0x0A, 0
 a20Active db 'a20 line is activated, continiung', 0x0D, 0x0A,0
