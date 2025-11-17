@@ -1,5 +1,5 @@
 ; MBR.asm
-; x64 bootloader (16-bit real mode)
+; x32 bootloader (16-bit real mode)
 org 0x7c00
 bits 16
 

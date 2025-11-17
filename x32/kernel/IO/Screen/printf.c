@@ -53,6 +53,15 @@ void printf(const char *format, ...) {
                     putString(printingColor, number);
                     break;
                 }
+                case 'b': {
+                    const int b = va_arg(ap, int);
+                    if (b == 0) {
+                        putString(printingColor, "false");
+                    }else {
+                        putString(printingColor, "true");
+                    }
+                    break;
+                }
                 case 'f': {
                     // color (f because of [german] Farbe)
                     const int f = va_arg(ap, int);

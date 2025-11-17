@@ -3,11 +3,18 @@
 //
 
 typedef struct keyboard{
-    unsigned char commandqueue[128];
-    unsigned char responsequeue[128];
+    unsigned char commandQueue[128];
+    unsigned char responseQueue[128];
     unsigned char status;
     unsigned char data;
 }Keyboard;
+
+struct KeyEvent {
+    unsigned char scancode;
+    int pressed;       // 1 = down, 0 = up
+    int extended;      // 1 if preceded by E0
+};
+
 
 static Keyboard keyboard;
 

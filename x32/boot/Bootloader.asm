@@ -56,7 +56,7 @@ protectedModeStart:
     mov fs, ax
     mov ss, ax
     mov esp, 0x0030000           ; esp( extended stack pointer) grows downwards from 0x30000
-    sti                          ; enable interrupts
+    cli                          ; disable interrupts
 .Kernel:
     jmp 0x8:0x00100000
 

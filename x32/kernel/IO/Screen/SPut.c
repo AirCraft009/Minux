@@ -25,7 +25,7 @@ int putChar(int color, char c) {
     volatile uint16_t* videoaddr = (volatile uint16_t*) vgaStart + (cursor.y * vgaWidth + cursor.x);
     *videoaddr = (uint16_t)c | ((uint16_t)color << 8);
     // advance the cursor or break to the next line
-    cursor.y += (cursor.x = (cursor.x + 1)%vgaWidth) == 0;
+    cursor.y += (cursor.x = (cursor.x + 1)%vgaWidth) == 0? 1:0;
     return 0;
 }
 
@@ -36,6 +36,18 @@ int putString(int color, const char *str) {
         }
     }
     return 0;
+}
+
+void clearScreen() {
+    for (int i = 0; i < vgaHeight ; i++) {
+        for (int j = 0; j < vgaWidth ; j++) {
+            cursor.x = j;
+            cursor.y = i;
+            putChar(Black, '\0');
+        }
+    }
+    cursor.x = 0;
+    cursor.y = 0;
 }
 
 
