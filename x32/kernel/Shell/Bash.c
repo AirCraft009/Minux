@@ -15,15 +15,15 @@ void startShell() {
         if (ch == (char)0) {
             continue;
         }
-            if (ch == 'q') {
-                printf("%fQuitting console", Red);
-                return;
-            }
+        if (ch == 'q') {
+            printf("%fQuitting console", Red);
+            return;
+        }
 
-            if (ch == 'c') {
-                clearScreen();
-                continue;
-            }
-            putChar(White, ch);
+        if (ch == 'c') {
+            clearScreen();
+            continue;
+        }
+        putChar(White, ch);
     }
 }

@@ -6,10 +6,11 @@ void Kmain(void) __attribute__((section(".text.start")));
 
 void init() {
     cursor.x = 0;
-    cursor.y = 12;
+    cursor.y = 0;
 }
 
 void Kmain(void) {
+    clearScreen();
     init();
     startShell();
     for (;;) {}

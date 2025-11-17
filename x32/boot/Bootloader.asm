@@ -74,7 +74,7 @@ push di
     mov es, ax
     mov si, 0x600
     mov di, 0x8000
-    mov cx, 0x0800  ; 4 sectors (512 b) = 2048b = 2KB
+    mov cx, 0x1000  ; 8 sectors (512 b) = 4096b = 4KB
 .Loop:
     rep movsw       ; repeat cx ammount of times
 .exit:
@@ -96,7 +96,7 @@ LoadKernel:
     mov cl, 4           ; start at sector 4
     mov dh, 0
     mov ah, 0x2
-    mov al, 4           ; load 4 sector 512 bytes
+    mov al, 8           ; load 4 sector(512 bytes)
     int 0x13
     jc kernelLoadingError
     mov si, KernelLoad
