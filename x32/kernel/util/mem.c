@@ -18,3 +18,9 @@ int memcpy(void *dest, const void *src, size_t n) {
     }
     return 0;
 }
+
+void memset(void *dest, int ch, size_t n) {
+    for (size_t i = 0; i < n; i++) {
+        ((char *)dest)[i] = ch;
+    }
+}

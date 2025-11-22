@@ -10,6 +10,7 @@ nasm "$root/boot/Bootloader.asm" -o "$root/build/Bootloader.bin"
 i686-elf-gcc -m32 -ffreestanding -fno-stack-protector -nostdlib -c "$root/kernel/kernel.c" -o "$root/build/kernel.o"
 i686-elf-ld -T "link.ld" -o "kernel.elf" "kernel.o"
 i686-elf-objcopy -O binary "kernel.elf" "kernel.bin"
+(Get-Item "kernel.bin").Lenght
 
 # read both binaries as byte arrays (no text conversion!)
 [byte[]]$boot  = [System.IO.File]::ReadAllBytes("x32/build/MBR.bin")

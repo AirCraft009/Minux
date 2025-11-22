@@ -101,9 +101,9 @@ int putChar(int color, char c) {
         return 1;
     }
     if (ret == 2) {
-        scrollUp();
         cursor.x = 0;
         cursor.y ++;
+        return 0;
     }
     // advance the cursor or break to the next line
     if ((cursor.x = (cursor.x + 1)%vgaWidth) == 0) {
